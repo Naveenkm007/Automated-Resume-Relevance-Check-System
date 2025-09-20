@@ -1,40 +1,107 @@
-# Resume Parser - Automated Resume Relevance Check System
+# 🚀 Automated Resume Relevance Check System
 
-A comprehensive Python package for parsing and extracting structured information from resume files (PDF and DOCX). This system uses Natural Language Processing (NLP) techniques to extract personal information, skills, education, work experience, and projects from resumes.
+> **Enterprise-Grade AI-Powered Resume Matching Platform**  
+> *Intelligent candidate evaluation with semantic analysis, LLM feedback, and production-ready deployment*
 
-## 🚀 Features
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://docker.com)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-326CE5.svg)](https://kubernetes.io)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF.svg)](https://github.com/features/actions)
 
-- **Multi-format Support**: Parse PDF and DOCX resume files
-- **Intelligent Text Extraction**: Uses multiple libraries for robust text extraction
-- **Advanced NLP Processing**: Leverages spaCy for Named Entity Recognition (NER)
-- **Smart Section Detection**: Automatically identifies resume sections (Experience, Education, Skills, etc.)
-- **Skills Normalization**: Maps skill variations to standard forms (e.g., "JS" → "javascript")
-- **Structured Output**: Returns data in a consistent JSON format
-- **CLI Interface**: Command-line tool for easy parsing
-- **Comprehensive Testing**: Full test suite with pytest
+## ✨ Overview
+
+A comprehensive, production-ready platform that revolutionizes resume screening through AI-powered analysis. Combines traditional keyword matching with advanced semantic understanding and LLM-generated feedback to provide accurate candidate evaluations and actionable insights.
+
+## 🚀 Key Features
+
+### 🧠 **AI-Powered Analysis**
+- **Hybrid Scoring System**: 60% keyword matching + 40% semantic similarity
+- **Advanced NLP**: spaCy-powered Named Entity Recognition and text processing
+- **Semantic Understanding**: Sentence transformers for contextual matching
+- **LLM Feedback**: GPT-powered personalized improvement suggestions
+
+### 🏗️ **Enterprise Architecture**
+- **FastAPI Backend**: Scalable REST API with async processing
+- **Celery Workers**: Background task processing for heavy operations
+- **PostgreSQL**: Robust data storage with JSON fields
+- **Redis**: Message broker and caching layer
+- **Docker & Kubernetes**: Production-ready containerized deployment
+
+### 📱 **Modern Frontend**
+- **Streamlit Dashboard**: Interactive placement team interface
+- **React Components**: Tailwind CSS components for future migration
+- **Real-time Updates**: Live processing status and score visualization
+- **CSV Export**: Bulk candidate data export functionality
+
+### 🔒 **Production-Ready**
+- **CI/CD Pipeline**: GitHub Actions with automated testing and deployment
+- **Security**: Input validation, rate limiting, authentication
+- **Monitoring**: Health checks, metrics, and comprehensive logging
+- **Documentation**: Complete API docs, runbooks, and deployment guides
 
 ## 📋 Table of Contents
 
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Usage Examples](#usage-examples)
-- [API Reference](#api-reference)
-- [Technical Concepts](#technical-concepts)
-- [Testing](#testing)
-- [Project Structure](#project-structure)
-- [Contributing](#contributing)
+- [Quick Start](#-quick-start)
+- [Architecture](#-system-architecture)
+- [Frontend Dashboard](#-frontend-dashboard)
+- [API Documentation](#-api-endpoints)
+- [Deployment](#-deployment)
+- [Configuration](#-configuration)
+- [Testing](#-testing)
+- [Documentation](#-documentation)
 
-## 🛠 Installation
+## ⚡ Quick Start
 
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd resume-parser
-   ```
+### 🐳 **Option 1: Docker (Recommended)**
 
-2. **Create a virtual environment** (recommended):
-   ```bash
-   python -m venv venv
+```bash
+# 1. Clone the repository
+git clone https://github.com/Naveenkm007/Automated-Resume-Relevance-Check-System.git
+cd Automated-Resume-Relevance-Check-System
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your API keys (optional for basic functionality)
+
+# 3. Start the complete platform
+docker-compose up --build -d
+
+# 4. Initialize database with sample data
+docker-compose exec api python -m api.init_db
+
+# 5. Access the dashboard
+streamlit run dashboard/streamlit_app.py
+# Open: http://localhost:8501
+```
+
+### 🐍 **Option 2: Local Development**
+
+```bash
+# 1. Setup Python environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+# 2. Download NLP models
+python -m spacy download en_core_web_sm
+
+# 3. Start services (requires PostgreSQL and Redis)
+export DATABASE_URL=postgresql://user:pass@localhost:5432/resume_checker
+export REDIS_URL=redis://localhost:6379/0
+
+# 4. Initialize database
+python -m api.init_db
+
+# 5. Start API server
+uvicorn api.main:app --reload
+
+# 6. Start workers (new terminal)
+celery -A api.tasks worker --loglevel=info
+
+# 7. Start dashboard (new terminal)
+streamlit run dashboard/streamlit_app.py
    
    # On Windows
    venv\Scripts\activate
@@ -1467,6 +1534,4 @@ The result is a neat, organized summary of everything important from the resume 
 ---
 
 *Built with ❤️ for the Automated Resume Relevance Check System*
-#   A u t o m a t e d - R e s u m e - R e l e v a n c e - C h e c k - S y s t e m  
- #   A u t o m a t e d - R e s u m e - R e l e v a n c e - C h e c k - S y s t e m  
- 
+#
