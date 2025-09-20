@@ -597,13 +597,13 @@ def main():
             if st.button("☀️ Light", use_container_width=True, 
                         type="primary" if st.session_state.theme == "light" else "secondary"):
                 st.session_state.theme = "light"
-                st.experimental_rerun()
+                st.rerun()
         
         with theme_col2:
             if st.button("🌙 Dark", use_container_width=True,
                         type="primary" if st.session_state.theme == "dark" else "secondary"):
                 st.session_state.theme = "dark"
-                st.experimental_rerun()
+                st.rerun()
         
         # Current theme indicator
         theme_emoji = "☀️" if st.session_state.theme == "light" else "🌙"
