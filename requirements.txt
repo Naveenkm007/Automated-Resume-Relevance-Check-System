@@ -1,0 +1,73 @@
+# Resume Parser Core Dependencies
+pdfplumber==0.10.3
+pymupdf==1.23.14
+python-docx==1.1.0
+docx2txt==0.8
+spacy==3.7.2
+
+# NLP and ML Libraries
+nltk==3.8.1
+torch==2.1.1
+sentence-transformers==2.2.2
+transformers==4.36.2
+
+# Vector Databases and Search
+chromadb==0.4.18
+faiss-cpu==1.7.4
+pinecone-client==2.2.4
+
+# LangChain Ecosystem
+langchain==0.0.350
+langgraph==0.0.65
+langsmith==0.0.69
+
+# AI/ML APIs
+openai==1.3.8
+
+# Search and Similarity
+rank_bm25==0.2.2
+scikit-learn==1.3.2
+rapidfuzz==3.5.2
+python-Levenshtein==0.23.0
+
+# Hard Match Scoring Dependencies
+# scikit-learn (already included above) - for TF-IDF similarity
+# rapidfuzz (already included above) - for fuzzy string matching
+numpy==1.24.4  # Required by scikit-learn for TF-IDF operations
+
+# Semantic Matching Dependencies
+sentence-transformers==2.2.2  # Local embedding generation (all-MiniLM-L6-v2)
+# openai (already included above) - for OpenAI embeddings and LLM feedback
+
+# Backend API Dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database Dependencies
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Background Task Processing
+celery==5.3.4
+redis==5.0.1
+flower==2.0.1  # Celery monitoring
+
+# Additional Web Framework (optional)
+streamlit==1.28.2
+
+# Utilities
+python-dotenv==1.0.0
+tqdm==4.66.1
+
+# Development and Testing
+pytest==7.4.3
+black==23.11.0
+isort==5.12.0
+
+# spaCy English Language Model
+# Install with: python -m spacy download en_core_web_sm
+# For better accuracy: python -m spacy download en_core_web_trf

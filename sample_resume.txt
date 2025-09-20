@@ -1,0 +1,35 @@
+John Smith
+Software Engineer
+john.smith@email.com | (555) 123-4567
+
+EXPERIENCE
+Senior Software Developer at Tech Corp Inc
+January 2020 - Present
+• Developed scalable web applications using Python and Django
+• Led a team of 5 developers in agile development processes
+• Implemented REST APIs serving over 1M requests daily
+• Improved system performance by 40% through optimization
+
+Junior Developer at StartupXYZ LLC
+June 2018 - December 2019
+• Built frontend applications using JavaScript and React
+• Worked with PostgreSQL databases and AWS cloud services
+• Collaborated on microservices architecture using Docker
+
+EDUCATION
+Bachelor of Science in Computer Science
+Massachusetts Institute of Technology, 2018
+GPA: 3.8/4.0
+
+SKILLS
+Python, JavaScript, React, Django, PostgreSQL, AWS, Docker
+Machine Learning, Data Analysis, REST APIs, Microservices
+
+PROJECTS
+E-commerce Platform
+Built a full-stack e-commerce application using MERN stack
+Implemented payment processing and inventory management
+
+AI Chatbot
+Created an intelligent chatbot using Python and TensorFlow
+Achieved 95% accuracy in intent recognition

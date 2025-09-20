@@ -1,0 +1,390 @@
+# Kubernetes Deployment Configuration for Resume Relevance Check API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resume-checker-api
+  namespace: default
+  labels:
+    app: resume-checker
+    component: api
+    version: v1.0.0
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 2
+  selector:
+    matchLabels:
+      app: resume-checker
+      component: api
+  template:
+    metadata:
+      labels:
+        app: resume-checker
+        component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: resume-checker
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: api
+        image: ghcr.io/your-org/resume-checker:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        env:
+        # Database Configuration
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: resume-checker-secrets
+              key: database-url
+        
+        # Redis Configuration
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: resume-checker-config
+              key: redis-url
+        
+        - name: CELERY_BROKER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: resume-checker-config
+              key: celery-broker-url
+        
+        - name: CELERY_RESULT_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: resume-checker-config
+              key: celery-result-backend
+        
+        # API Keys (from secrets)
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: resume-checker-secrets
+              key: openai-api-key
+              optional: true
+        
+        - name: PINECONE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: resume-checker-secrets
+              key: pinecone-api-key
+              optional: true
+        
+        # Application Configuration
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: resume-checker-secrets
+              key: secret-key
+        
+        - name: DEBUG
+          value: "false"
+        
+        - name: ENVIRONMENT
+          value: "production"
+        
+        - name: LOG_LEVEL
+          value: "INFO"
+        
+        # CORS and Security
+        - name: CORS_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: resume-checker-config
+              key: cors-origins
+        
+        # File Upload Settings
+        - name: MAX_FILE_SIZE
+          value: "10485760"  # 10MB
+        
+        - name: UPLOAD_DIRECTORY
+          value: "/app/uploads"
+        
+        # Embedding Configuration
+        - name: USE_OPENAI_EMBEDDINGS
+          valueFrom:
+            configMapKeyRef:
+              name: resume-checker-config
+              key: use-openai-embeddings
+        
+        - name: EMBEDDING_MODEL
+          value: "all-MiniLM-L6-v2"
+        
+        - name: LLM_MODEL
+          value: "gpt-3.5-turbo"
+        
+        # Rate Limiting
+        - name: RATE_LIMIT_PER_MINUTE
+          value: "100"
+        
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        
+        volumeMounts:
+        - name: uploads
+          mountPath: /app/uploads
+        - name: logs
+          mountPath: /app/logs
+        - name: tmp
+          mountPath: /tmp
+      
+      volumes:
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: resume-checker-uploads-pvc
+      - name: logs
+        persistentVolumeClaim:
+          claimName: resume-checker-logs-pvc  
+      - name: tmp
+        emptyDir: {}
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - resume-checker
+                - key: component
+                  operator: In
+                  values:
+                  - api
+              topologyKey: kubernetes.io/hostname
+
+---
+# Celery Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resume-checker-worker
+  namespace: default
+  labels:
+    app: resume-checker
+    component: worker
+    version: v1.0.0
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: resume-checker
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: resume-checker
+        component: worker
+    spec:
+      serviceAccountName: resume-checker
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: worker
+        image: ghcr.io/your-org/resume-checker:latest
+        imagePullPolicy: Always
+        command: ["celery"]
+        args: ["-A", "api.tasks", "worker", "--loglevel=info", "--concurrency=4"]
+        env:
+        # Same environment variables as API
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: resume-checker-secrets
+              key: database-url
+        
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: resume-checker-config
+              key: redis-url
+        
+        - name: CELERY_BROKER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: resume-checker-config
+              key: celery-broker-url
+        
+        - name: CELERY_RESULT_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: resume-checker-config
+              key: celery-result-backend
+        
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: resume-checker-secrets
+              key: openai-api-key
+              optional: true
+        
+        - name: USE_OPENAI_EMBEDDINGS
+          valueFrom:
+            configMapKeyRef:
+              name: resume-checker-config
+              key: use-openai-embeddings
+        
+        - name: EMBEDDING_MODEL
+          value: "all-MiniLM-L6-v2"
+        
+        - name: LLM_MODEL
+          value: "gpt-3.5-turbo"
+        
+        - name: UPLOAD_DIRECTORY
+          value: "/app/uploads"
+        
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "celery -A api.tasks inspect ping -d celery@$HOSTNAME"
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        volumeMounts:
+        - name: uploads
+          mountPath: /app/uploads
+        - name: logs
+          mountPath: /app/logs
+        - name: tmp
+          mountPath: /tmp
+      
+      volumes:
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: resume-checker-uploads-pvc
+      - name: logs
+        persistentVolumeClaim:
+          claimName: resume-checker-logs-pvc
+      - name: tmp
+        emptyDir: {}
+
+---
+# HorizontalPodAutoscaler for API
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: resume-checker-api-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: resume-checker-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
+
+---
+# HorizontalPodAutoscaler for Workers
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: resume-checker-worker-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: resume-checker-worker
+  minReplicas: 1
+  maxReplicas: 8
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 85

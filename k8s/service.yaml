@@ -1,0 +1,270 @@
+# Kubernetes Services Configuration
+apiVersion: v1
+kind: Service
+metadata:
+  name: resume-checker-api-service
+  namespace: default
+  labels:
+    app: resume-checker
+    component: api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 8000
+    protocol: TCP
+  selector:
+    app: resume-checker
+    component: api
+  sessionAffinity: None
+
+---
+# Internal Service for API (ClusterIP)
+apiVersion: v1
+kind: Service
+metadata:
+  name: resume-checker-api
+  namespace: default
+  labels:
+    app: resume-checker
+    component: api
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  selector:
+    app: resume-checker
+    component: api
+
+---
+# Headless Service for Workers (for monitoring)
+apiVersion: v1
+kind: Service
+metadata:
+  name: resume-checker-worker
+  namespace: default
+  labels:
+    app: resume-checker
+    component: worker
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: monitoring
+    port: 5555
+    targetPort: 5555
+    protocol: TCP
+  selector:
+    app: resume-checker
+    component: worker
+
+---
+# ConfigMap for application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resume-checker-config
+  namespace: default
+data:
+  # Redis Configuration
+  redis-url: "redis://resume-checker-redis:6379/0"
+  celery-broker-url: "redis://resume-checker-redis:6379/0"
+  celery-result-backend: "redis://resume-checker-redis:6379/1"
+  
+  # CORS Configuration
+  cors-origins: "https://yourdomain.com,https://dashboard.yourdomain.com"
+  
+  # Feature Flags
+  use-openai-embeddings: "false"
+  
+  # File Upload Settings
+  max-file-size: "10485760"
+  allowed-extensions: ".pdf,.docx,.doc,.txt"
+  
+  # Rate Limiting
+  rate-limit-per-minute: "100"
+
+---
+# Secret template (populate with actual values)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: resume-checker-secrets
+  namespace: default
+type: Opaque
+data:
+  # Base64 encoded secrets - update with actual values
+  # Use: echo -n "your-secret" | base64
+  
+  database-url: "{{ DATABASE_URL_BASE64 }}"
+  secret-key: "{{ SECRET_KEY_BASE64 }}"
+  openai-api-key: "{{ OPENAI_API_KEY_BASE64 }}"
+  pinecone-api-key: "{{ PINECONE_API_KEY_BASE64 }}"
+
+---
+# ServiceAccount for RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: resume-checker
+  namespace: default
+  labels:
+    app: resume-checker
+
+---
+# Role for application permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: resume-checker-role
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list"]
+
+---
+# RoleBinding to associate ServiceAccount with Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: resume-checker-rolebinding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: resume-checker
+  namespace: default
+roleRef:
+  kind: Role
+  name: resume-checker-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# PersistentVolumeClaim for file uploads
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: resume-checker-uploads-pvc
+  namespace: default
+  labels:
+    app: resume-checker
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: efs-sc  # Use EFS or NFS for multi-pod access
+
+---
+# PersistentVolumeClaim for logs
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: resume-checker-logs-pvc
+  namespace: default
+  labels:
+    app: resume-checker
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: efs-sc
+
+---
+# Ingress configuration (optional - for custom domains)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: resume-checker-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+spec:
+  tls:
+  - hosts:
+    - api.yourdomain.com
+    - dashboard.yourdomain.com
+    secretName: resume-checker-tls
+  rules:
+  - host: api.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: resume-checker-api
+            port:
+              number: 8000
+  - host: dashboard.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: resume-checker-dashboard
+            port:
+              number: 8501
+
+---
+# NetworkPolicy for security (optional)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: resume-checker-netpol
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: resume-checker
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8000
+  - from:
+    - podSelector:
+        matchLabels:
+          app: resume-checker
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  - to: []  # Allow all outbound (for API calls, DB access)
+    ports:
+    - protocol: TCP
+      port: 5432  # PostgreSQL
+    - protocol: TCP  
+      port: 6379  # Redis
+    - protocol: TCP
+      port: 443   # HTTPS (OpenAI API)
+    - protocol: TCP
+      port: 80    # HTTP

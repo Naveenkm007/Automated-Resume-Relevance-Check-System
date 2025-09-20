@@ -1468,4 +1468,5 @@ The result is a neat, organized summary of everything important from the resume 
 
 *Built with ❤️ for the Automated Resume Relevance Check System*
 #   A u t o m a t e d - R e s u m e - R e l e v a n c e - C h e c k - S y s t e m  
+ #   A u t o m a t e d - R e s u m e - R e l e v a n c e - C h e c k - S y s t e m  
  
