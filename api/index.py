@@ -1,28 +1,43 @@
 #!/usr/bin/env python3
 """
-Ultra-Minimal Resume Relevance Check - Flask Version for Vercel
-==============================================================
-Lightweight Flask app optimized for Vercel's 250MB limit.
+AI Insights Dashboard - Flask Version for Vercel
+===============================================
+Beautiful AI-powered resume analytics dashboard optimized for Vercel deployment.
 Built for Innomatics Research Labs.
 """
 
 from flask import Flask, request, jsonify, render_template_string
 import re
+import json
+import random
 from typing import Dict, List, Any
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
-# Built-in skills database
-SKILLS = [
-    'python', 'java', 'javascript', 'typescript', 'html', 'css', 'react', 'angular', 'vue',
-    'node', 'express', 'django', 'flask', 'spring', 'sql', 'mysql', 'postgresql', 'mongodb',
-    'aws', 'azure', 'docker', 'kubernetes', 'git', 'api', 'rest', 'microservices', 'devops'
-]
+# Extended skills database matching your original
+SKILLS_DATABASE = {
+    'programming': ['python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'php', 'ruby', 'go', 'rust'],
+    'frontend': ['html', 'css', 'react', 'angular', 'vue', 'bootstrap', 'tailwind'],
+    'backend': ['node', 'express', 'django', 'flask', 'spring', 'fastapi'],
+    'database': ['sql', 'mysql', 'postgresql', 'mongodb', 'redis', 'sqlite', 'oracle'],
+    'cloud': ['aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins'],
+    'tools': ['git', 'github', 'gitlab', 'jira', 'confluence'],
+    'ai_ml': ['machine learning', 'ai', 'deep learning', 'tensorflow', 'pytorch', 'scikit-learn'],
+    'data': ['data science', 'pandas', 'numpy', 'matplotlib', 'tableau', 'power bi'],
+    'mobile': ['android', 'ios', 'react native', 'flutter', 'swift', 'kotlin'],
+    'other': ['api', 'rest', 'graphql', 'microservices', 'devops', 'ci/cd', 'agile', 'scrum']
+}
+
+# Flatten skills for easy searching
+ALL_SKILLS = []
+for category in SKILLS_DATABASE.values():
+    ALL_SKILLS.extend(category)
 
 def extract_skills(text: str) -> List[str]:
     """Extract skills from resume text."""
     text_lower = text.lower()
-    found = [skill for skill in SKILLS if skill in text_lower]
+    found = [skill for skill in ALL_SKILLS if skill in text_lower]
     return sorted(found)
 
 def extract_contact(text: str) -> Dict[str, str]:
@@ -85,39 +100,206 @@ def analyze_resume(text: str, required_skills: List[str]) -> Dict[str, Any]:
         'verdict': 'Excellent' if overall_score >= 80 else 'Good' if overall_score >= 60 else 'Fair'
     }
 
-# HTML Template
+# AI Insights Dashboard HTML Template
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resume Relevance Check | Innomatics Labs</title>
+    <title>AI Insights Dashboard | Innomatics Labs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .header { text-align: center; color: white; margin-bottom: 2rem; }
-        .header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
-        .header p { font-size: 1.2rem; opacity: 0.9; }
-        .card { background: white; border-radius: 15px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e6ed;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        .header { text-align: center; margin-bottom: 2rem; }
+        .main-header {
+            font-family: 'Orbitron', monospace;
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, #00d4ff, #091a7a, #0099ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+            margin-bottom: 1rem;
+        }
+        
+        .ai-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, #ff006e, #8338ec, #3a86ff);
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+            margin: 0.2rem;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 110, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 0, 110, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 110, 0); }
+        }
+        
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 300px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            overflow-y: auto;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .main-content { margin-left: 320px; padding: 1rem; }
+        
         .form-group { margin-bottom: 1.5rem; }
-        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #555; }
-        .form-group input, .form-group textarea { width: 100%; padding: 12px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 16px; transition: border-color 0.3s; }
-        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #667eea; }
-        .btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 0.5rem; 
+            font-weight: 600; 
+            color: #00d4ff;
+            font-size: 0.9rem;
+        }
+        .form-group input, .form-group textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 8px; 
+            font-size: 14px; 
+            background: rgba(255, 255, 255, 0.05);
+            color: #e0e6ed;
+            transition: border-color 0.3s; 
+        }
+        .form-group input:focus, .form-group textarea:focus { 
+            outline: none; 
+            border-color: #00d4ff; 
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+        
+        .btn { 
+            background: linear-gradient(135deg, #00d4ff 0%, #091a7a 100%); 
+            color: white; 
+            padding: 12px 30px; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: transform 0.2s; 
+            width: 100%;
+        }
         .btn:hover { transform: translateY(-2px); }
-        .results { margin-top: 2rem; }
-        .metric { background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #667eea; }
-        .metric h3 { color: #667eea; margin-bottom: 0.5rem; }
-        .score { font-size: 2rem; font-weight: bold; }
-        .excellent { color: #28a745; }
-        .good { color: #17a2b8; }
-        .fair { color: #ffc107; }
+        
+        .metrics-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+            gap: 1.5rem; 
+            margin-bottom: 2rem; 
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+            text-align: center;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
+        }
+        
+        .metric-card h3 { 
+            color: #00d4ff; 
+            margin-bottom: 0.5rem; 
+            font-size: 1.1rem;
+        }
+        
+        .metric-value { 
+            font-size: 2.5rem; 
+            font-weight: bold; 
+            margin: 0.5rem 0;
+        }
+        
+        .score-excellent { color: #00ff88; text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+        .score-good { color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5); }
+        .score-average { color: #ffaa00; text-shadow: 0 0 10px rgba(255, 170, 0, 0.5); }
+        .score-poor { color: #ff4757; text-shadow: 0 0 10px rgba(255, 71, 87, 0.5); }
+        
+        .charts-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 2rem; 
+            margin: 2rem 0; 
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .chart-title {
+            color: #00d4ff;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .skills-container { margin-top: 2rem; }
         .skills { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
-        .skill { background: #667eea; color: white; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.9rem; }
-        .missing { background: #dc3545; }
-        .footer { text-align: center; color: white; margin-top: 2rem; opacity: 0.8; }
+        .skill { 
+            background: linear-gradient(45deg, #00d4ff, #091a7a); 
+            color: white; 
+            padding: 0.5rem 1rem; 
+            border-radius: 20px; 
+            font-size: 0.9rem; 
+            font-weight: 500;
+        }
+        .missing { background: linear-gradient(45deg, #ff4757, #c44569); }
+        
+        .ai-insight {
+            background: linear-gradient(135deg, rgba(131, 56, 236, 0.1), rgba(58, 134, 255, 0.1));
+            border-left: 4px solid #8338ec;
+            padding: 1rem;
+            border-radius: 0 10px 10px 0;
+            margin: 1rem 0;
+        }
+        
+        .footer { 
+            text-align: center; 
+            margin-top: 3rem; 
+            padding: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { position: relative; width: 100%; height: auto; }
+            .main-content { margin-left: 0; }
+            .charts-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
