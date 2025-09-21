@@ -217,8 +217,8 @@ def main():
         # File upload
         uploaded_file = st.file_uploader(
             "📄 Upload Resume",
-            type=['txt'],
-            help="Upload TXT files for cloud compatibility"
+            type=['pdf', 'docx', 'txt'],
+            help="Upload PDF, DOCX, or TXT files (max 200MB)"
         )
         
         # Job requirements
@@ -252,8 +252,9 @@ def main():
     
     with col2:
         st.markdown("### 📊 System Status")
-        st.success("✅ Cloud Ready")
-        st.success("✅ Charts Available" if PLOTLY_AVAILABLE else "❌ Charts Limited")
+        st.success("✅ Resume Parser Ready")
+        st.success("✅ Charts Available" if PLOTLY_AVAILABLE else "❌ Charts Limited")  
+        st.success("✅ PDF/DOCX Support")
         st.info("📈 Ready for Analysis")
     
     with col1:
@@ -264,11 +265,37 @@ def main():
                 status_text = st.empty()
                 
                 # Extract text
-                status_text.text("🔍 Processing resume...")
-                progress_bar.progress(33)
+                status_text.text("🔍 Extracting text from document...")
+                progress_bar.progress(25)
                 
-                # Read text file
-                text = str(uploaded_file.read(), "utf-8")
+                # Handle different file types
+                if uploaded_file.type == "text/plain":
+                    text = str(uploaded_file.read(), "utf-8")
+                elif uploaded_file.type == "application/pdf":
+                    try:
+                        import pdfplumber
+                        with pdfplumber.open(uploaded_file) as pdf:
+                            text = ""
+                            for page in pdf.pages:
+                                page_text = page.extract_text()
+                                if page_text:
+                                    text += page_text + "\n"
+                    except Exception as e:
+                        st.error(f"PDF parsing error: {e}")
+                        text = "Error reading PDF. Please upload a TXT file."
+                elif uploaded_file.name.endswith('.docx'):
+                    try:
+                        from docx import Document
+                        from io import BytesIO
+                        doc = Document(BytesIO(uploaded_file.read()))
+                        text = ""
+                        for paragraph in doc.paragraphs:
+                            text += paragraph.text + "\n"
+                    except Exception as e:
+                        st.error(f"DOCX parsing error: {e}")  
+                        text = "Error reading DOCX. Please upload a TXT file."
+                else:
+                    text = str(uploaded_file.read(), "utf-8")
                 
                 progress_bar.progress(66)
                 status_text.text("🧠 Analyzing content...")
@@ -388,7 +415,7 @@ def main():
             st.info("👆 Upload a resume file to start analysis!")
             
             # Sample data
-            st.markdown("#### 📊 Sample Analysis")
+            st.markdown("#### 📊 Sample Analysis Results")
             sample_scores = {
                 'Must-Have Skills': 85.0,
                 'Good-to-Have Skills': 60.0,
@@ -396,26 +423,55 @@ def main():
                 'Education': 90.0
             }
             
+            # Sample metrics display
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Overall Score", "78.5/100", "High Match")
+            with col2:
+                st.metric("Skills Found", "12", "technical skills")
+            with col3:
+                st.metric("Experience", "✓", "Detected")
+            with col4:
+                st.metric("Education", "✓", "Verified")
+            
             if PLOTLY_AVAILABLE:
                 fig = create_simple_chart(sample_scores)
                 if fig:
                     st.plotly_chart(fig, use_container_width=True)
             
-            st.markdown("### 🚀 Features")
+            st.markdown("### 🚀 System Capabilities")
             col1, col2 = st.columns(2)
             with col1:
                 st.markdown("#### ✨ Core Features")
-                st.markdown("- 📄 PDF/DOCX/TXT file support")
-                st.markdown("- 🧠 AI-powered text analysis") 
-                st.markdown("- 📊 Real-time scoring")
-                st.markdown("- 🎯 Skills gap identification")
+                st.markdown("- 📄 **Multi-format Support**: PDF, DOCX, TXT files")
+                st.markdown("- 🧠 **Intelligent Parsing**: Extract contact info, skills, experience") 
+                st.markdown("- 📊 **Real-time Scoring**: Instant relevance analysis")
+                st.markdown("- 🎯 **Gap Analysis**: Identify missing critical skills")
+                st.markdown("- 📈 **Visual Dashboard**: Interactive charts and metrics")
             
             with col2:
-                st.markdown("#### 🏗️ Technical Stack")
-                st.markdown("- 🐍 Python + Streamlit")
-                st.markdown("- 📊 Plotly visualizations")
-                st.markdown("- 🧠 spaCy NLP processing")
-                st.markdown("- ☁️ Cloud-ready deployment")
+                st.markdown("#### 🏗️ Technical Architecture")
+                st.markdown("- 🐍 **Python Backend**: Streamlit + pandas + plotly")
+                st.markdown("- 📊 **Advanced Visualization**: Interactive Plotly charts")
+                st.markdown("- 🔍 **Text Processing**: Regex + pattern matching")
+                st.markdown("- ☁️ **Cloud Optimized**: Streamlit Cloud ready")
+                st.markdown("- 🎨 **Modern UI**: Responsive design with custom CSS")
+                
+            # Sample resume format
+            with st.expander("📄 Supported Resume Formats"):
+                st.markdown("""
+                **Supported File Types:**
+                - 📄 **PDF files** - Extracted using pdfplumber
+                - 📝 **Word documents (.docx)** - Parsed with python-docx  
+                - 📜 **Plain text (.txt)** - Direct text processing
+                
+                **Information Extracted:**
+                - 👤 Name and contact details
+                - 🎯 Technical skills and competencies
+                - 💼 Work experience and roles
+                - 🎓 Educational background
+                - 📧 Email addresses and phone numbers
+                """)
     
     # Footer
     st.markdown("---")
