@@ -1,7 +1,3 @@
-# Minimal Streamlit Cloud Requirements - Resume Relevance Check System
 streamlit
 pandas
-numpy
 plotly
-python-docx
-requests

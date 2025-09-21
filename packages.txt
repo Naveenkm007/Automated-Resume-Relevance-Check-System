@@ -1,2 +1,0 @@
-# Minimal system packages for Streamlit Cloud
-python3-dev

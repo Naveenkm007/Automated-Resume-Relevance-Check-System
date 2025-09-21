@@ -1,47 +1,17 @@
 #!/usr/bin/env python3
 """
-Automated Resume Relevance Check System - Main Streamlit App
-=============================================================
+Automated Resume Relevance Check System - Streamlit Cloud Version
+================================================================
 
-Streamlit Cloud compatible main application for Innomatics Research Labs.
-This is the primary entry point for the cloud deployment.
-
-Features:
-- Resume parsing and analysis
-- AI-powered scoring
-- Interactive dashboard
-- Cloud-optimized performance
-
-Author: Naveen Kumar K M
-Created for: Innomatics Research Labs
+Ultra-minimal standalone application for Streamlit Cloud deployment.
+Built for Innomatics Research Labs.
 """
 
 import streamlit as st
 import pandas as pd
-import json
-import os
-import sys
-from pathlib import Path
+import re
 import time
-import traceback
-
-# Add current directory to path for imports
-sys.path.append(str(Path(__file__).parent))
-
-# Import with error handling for cloud deployment
-try:
-    from resume_parser.extract import extract_text_from_file
-    from resume_parser.cleaner import normalize_text  
-    from resume_parser.ner import extract_entities
-    PARSER_AVAILABLE = True
-except ImportError:
-    try:
-        from cloud_parser import extract_text_simple as extract_text_from_file
-        from cloud_parser import normalize_text_simple as normalize_text
-        from cloud_parser import extract_entities_simple as extract_entities
-        PARSER_AVAILABLE = True
-    except ImportError:
-        PARSER_AVAILABLE = False
+from typing import Dict, List, Any
 
 try:
     import plotly.express as px
@@ -49,6 +19,68 @@ try:
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
+
+# Built-in skill database for cloud deployment
+TECHNICAL_SKILLS = {
+    'python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'php', 'ruby', 'go', 'rust',
+    'html', 'css', 'react', 'angular', 'vue', 'node', 'express', 'django', 'flask', 'spring',
+    'sql', 'mysql', 'postgresql', 'mongodb', 'redis', 'sqlite', 'oracle',
+    'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'git', 'github', 'gitlab',
+    'machine learning', 'ai', 'deep learning', 'tensorflow', 'pytorch', 'scikit-learn',
+    'data science', 'pandas', 'numpy', 'matplotlib', 'seaborn', 'jupyter',
+    'api', 'rest', 'graphql', 'microservices', 'devops', 'ci/cd', 'agile', 'scrum'
+}
+
+def extract_skills_from_text(text: str) -> List[str]:
+    """Extract skills from text using simple matching."""
+    text_lower = text.lower()
+    found_skills = []
+    for skill in TECHNICAL_SKILLS:
+        if skill in text_lower:
+            found_skills.append(skill)
+    return sorted(found_skills)
+
+def extract_basic_info(text: str) -> Dict[str, Any]:
+    """Extract basic information from resume text."""
+    info = {
+        'name': None,
+        'email': None, 
+        'phone': None,
+        'skills': [],
+        'has_experience': False,
+        'has_education': False
+    }
+    
+    # Extract email
+    email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    email_match = re.search(email_pattern, text)
+    if email_match:
+        info['email'] = email_match.group()
+    
+    # Extract phone
+    phone_pattern = r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'
+    phone_match = re.search(phone_pattern, text)
+    if phone_match:
+        info['phone'] = phone_match.group()
+    
+    # Extract name (simple heuristic)
+    lines = text.split('\n')
+    for line in lines[:5]:
+        line = line.strip()
+        if len(line.split()) == 2 and line.replace(' ', '').isalpha() and len(line) < 50:
+            if '@' not in line:
+                info['name'] = line
+                break
+    
+    # Extract skills
+    info['skills'] = extract_skills_from_text(text)
+    
+    # Check for sections
+    text_lower = text.lower()
+    info['has_experience'] = bool(re.search(r'\b(experience|work|employment)\b', text_lower))
+    info['has_education'] = bool(re.search(r'\b(education|university|college|degree)\b', text_lower))
+    
+    return info
 
 # Page configuration
 st.set_page_config(
@@ -114,71 +146,60 @@ def create_simple_chart(data_dict):
     )
     return fig
 
-def analyze_resume(text, job_requirements):
-    """Analyze resume against job requirements."""
+def analyze_resume_simple(text: str, job_requirements: Dict[str, Any]) -> Dict[str, Any]:
+    """Simplified resume analysis for cloud deployment."""
     
-    # Simple scoring logic for cloud deployment
-    score_breakdown = {}
+    # Extract basic info
+    info = extract_basic_info(text)
     
-    # Skills analysis
-    candidate_skills = set()
-    required_skills = set(job_requirements.get('must_have_skills', []))
-    good_to_have_skills = set(job_requirements.get('good_to_have_skills', []))
+    # Get job requirements
+    required_skills = set([skill.lower().strip() for skill in job_requirements.get('must_have_skills', [])])
+    good_to_have_skills = set([skill.lower().strip() for skill in job_requirements.get('good_to_have_skills', [])])
     
-    # Extract skills from text (simplified)
-    text_lower = text.lower()
-    for skill in required_skills:
-        if skill.lower() in text_lower:
-            candidate_skills.add(skill)
-    
-    for skill in good_to_have_skills:
-        if skill.lower() in text_lower:
-            candidate_skills.add(skill)
+    # Calculate skill matches
+    candidate_skills = set(info['skills'])
+    must_have_matches = candidate_skills & required_skills
+    good_to_have_matches = candidate_skills & good_to_have_skills
     
     # Calculate scores
-    must_have_match = len(candidate_skills & required_skills)
-    total_required = len(required_skills)
-    must_have_score = (must_have_match / max(total_required, 1)) * 100
+    must_have_score = (len(must_have_matches) / max(len(required_skills), 1)) * 100
+    good_to_have_score = (len(good_to_have_matches) / max(len(good_to_have_skills), 1)) * 100
     
-    good_to_have_match = len(candidate_skills & good_to_have_skills)
-    total_good_to_have = len(good_to_have_skills)
-    good_to_have_score = (good_to_have_match / max(total_good_to_have, 1)) * 100
+    # Simple experience and education scoring
+    experience_score = 70 if info['has_experience'] else 30
+    education_score = 80 if info['has_education'] else 40
     
-    # Experience score (simplified)
-    experience_keywords = ['experience', 'worked', 'developed', 'managed', 'led', 'created']
-    experience_score = min(sum(1 for keyword in experience_keywords if keyword in text_lower) * 10, 100)
-    
-    # Education score (simplified)  
-    education_keywords = ['degree', 'university', 'college', 'bachelor', 'master', 'phd']
-    education_score = min(sum(1 for keyword in education_keywords if keyword in text_lower) * 15, 100)
-    
-    # Overall score (weighted)
-    overall_score = (must_have_score * 0.4 + good_to_have_score * 0.2 + 
-                    experience_score * 0.3 + education_score * 0.1)
-    
-    score_breakdown = {
-        'Must-Have Skills': must_have_score,
-        'Good-to-Have Skills': good_to_have_score,
-        'Experience': experience_score,
-        'Education': education_score,
-        'Overall Score': overall_score
-    }
+    # Overall weighted score
+    overall_score = (must_have_score * 0.5 + good_to_have_score * 0.2 + 
+                    experience_score * 0.2 + education_score * 0.1)
     
     # Determine verdict
-    if overall_score >= 80:
+    if overall_score >= 75:
         verdict = "High"
         verdict_class = "score-high"
-    elif overall_score >= 60:
-        verdict = "Medium" 
-        verdict_class = "score-medium"
+    elif overall_score >= 50:
+        verdict = "Medium"
+        verdict_class = "score-medium"  
     else:
         verdict = "Low"
         verdict_class = "score-low"
     
-    return score_breakdown, verdict, verdict_class, {
-        'matched_skills': list(candidate_skills),
-        'missing_required': list(required_skills - candidate_skills),
-        'total_skills_found': len(candidate_skills)
+    return {
+        'info': info,
+        'scores': {
+            'Must-Have Skills': must_have_score,
+            'Good-to-Have Skills': good_to_have_score, 
+            'Experience': experience_score,
+            'Education': education_score,
+            'Overall Score': overall_score
+        },
+        'verdict': verdict,
+        'verdict_class': verdict_class,
+        'details': {
+            'matched_skills': list(must_have_matches | good_to_have_matches),
+            'missing_required': list(required_skills - candidate_skills),
+            'total_skills_found': len(candidate_skills)
+        }
     }
 
 def main():
@@ -196,8 +217,8 @@ def main():
         # File upload
         uploaded_file = st.file_uploader(
             "📄 Upload Resume",
-            type=['pdf', 'docx', 'txt'],
-            help="Upload PDF, DOCX, or TXT files (max 200MB)"
+            type=['txt'],
+            help="Upload TXT files for cloud compatibility"
         )
         
         # Job requirements
@@ -231,9 +252,9 @@ def main():
     
     with col2:
         st.markdown("### 📊 System Status")
-        st.success("✅ Parser Available" if PARSER_AVAILABLE else "❌ Parser Unavailable")
-        st.success("✅ Charts Available" if PLOTLY_AVAILABLE else "❌ Charts Unavailable")
-        st.info(f"📈 Ready for Analysis")
+        st.success("✅ Cloud Ready")
+        st.success("✅ Charts Available" if PLOTLY_AVAILABLE else "❌ Charts Limited")
+        st.info("📈 Ready for Analysis")
     
     with col1:
         if uploaded_file is not None:
@@ -243,23 +264,13 @@ def main():
                 status_text = st.empty()
                 
                 # Extract text
-                status_text.text("🔍 Extracting text from document...")
-                progress_bar.progress(25)
+                status_text.text("🔍 Processing resume...")
+                progress_bar.progress(33)
                 
-                if uploaded_file.type == "text/plain":
-                    text = str(uploaded_file.read(), "utf-8")
-                elif PARSER_AVAILABLE:
-                    # Save uploaded file temporarily
-                    temp_path = f"temp_{uploaded_file.name}"
-                    with open(temp_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                    text = extract_text_from_file(temp_path)
-                    os.remove(temp_path)
-                else:
-                    st.error("❌ PDF/DOCX parsing not available. Please upload a TXT file.")
-                    return
+                # Read text file
+                text = str(uploaded_file.read(), "utf-8")
                 
-                progress_bar.progress(50)
+                progress_bar.progress(66)
                 status_text.text("🧠 Analyzing content...")
                 
                 # Job requirements structure
@@ -270,7 +281,7 @@ def main():
                 }
                 
                 # Analyze resume
-                scores, verdict, verdict_class, details = analyze_resume(text, job_requirements)
+                analysis_result = analyze_resume_simple(text, job_requirements)
                 
                 progress_bar.progress(100)
                 status_text.text("✅ Analysis complete!")
@@ -285,6 +296,12 @@ def main():
                 
                 # Key metrics
                 col1, col2, col3, col4 = st.columns(4)
+                
+                scores = analysis_result['scores']
+                verdict = analysis_result['verdict']
+                verdict_class = analysis_result['verdict_class']
+                details = analysis_result['details']
+                info = analysis_result['info']
                 
                 with col1:
                     st.markdown(f"""
@@ -305,17 +322,19 @@ def main():
                 with col3:
                     st.markdown(f"""
                     <div class="metric-card">
-                        <h4>🎯 Skills Match</h4>
-                        <h2>{details['total_skills_found']}</h2>
-                        <p>skills found</p>
+                        <h4>🎯 Skills Found</h4>
+                        <h2 class="score-good">{details['total_skills_found']}</h2>
+                        <p>technical skills</p>
                     </div>
                     """, unsafe_allow_html=True)
                 
                 with col4:
+                    candidate_name = info.get('name', 'Unknown')
                     st.markdown(f"""
                     <div class="metric-card">
-                        <h4>📋 Job Role</h4>
-                        <h3>{job_title}</h3>
+                        <h4>👤 Candidate</h4>
+                        <h3>{candidate_name}</h3>
+                        <p>{job_title}</p>
                     </div>
                     """, unsafe_allow_html=True)
                 
@@ -347,13 +366,21 @@ def main():
                     skills_text = " • ".join([skill.title() for skill in details['matched_skills']])
                     st.success(f"🎯 {skills_text}")
                 
+                # Contact info
+                if info.get('email') or info.get('phone'):
+                    st.markdown("### 📞 Contact Information")
+                    if info.get('email'):
+                        st.info(f"📧 Email: {info['email']}")
+                    if info.get('phone'):
+                        st.info(f"📱 Phone: {info['phone']}")
+                
                 # Raw text preview
-                with st.expander("📄 Extracted Text Preview"):
-                    st.text_area("Resume Content", text[:1000] + "..." if len(text) > 1000 else text, height=200)
+                with st.expander("📄 Resume Text Preview"):
+                    st.text_area("Content", text[:1000] + "..." if len(text) > 1000 else text, height=200)
                 
             except Exception as e:
                 st.error(f"❌ Error processing file: {str(e)}")
-                st.code(traceback.format_exc())
+                st.exception(e)
         
         else:
             # Demo mode
