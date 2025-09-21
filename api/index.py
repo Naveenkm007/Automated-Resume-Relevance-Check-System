@@ -100,25 +100,26 @@ def analyze_resume(text: str, required_skills: List[str]) -> Dict[str, Any]:
         'verdict': 'Excellent' if overall_score >= 80 else 'Good' if overall_score >= 60 else 'Fair'
     }
 
-# AI Insights Dashboard HTML Template
+# EXACT AI Insights Dashboard HTML Template - Matching Screenshot
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Insights Dashboard | Innomatics Labs</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <title>🤖 AI INSIGHTS DASHBOARD | Innomatics Labs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body { 
-            font-family: 'Roboto', sans-serif; 
-            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
-            color: #e0e6ed;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f0f2f7 0%, #e6e9f0 25%, #dde1ea 50%, #d4d9e3 75%, #cbd1dc 100%);
+            color: #2d3748;
             min-height: 100vh;
-            line-height: 1.6;
+            margin: 0;
+            overflow-x: hidden;
         }
         
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
