@@ -1,1 +1,8 @@
-# System packages needed for spaCy
+# System packages for Automated Resume Relevance Check System
+# Required for text processing and NLP
+build-essential
+python3-dev
+# For PDF processing
+poppler-utils
+# For efficient text processing
+libffi-dev
