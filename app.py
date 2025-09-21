@@ -9,7 +9,6 @@ Built for Innomatics Research Labs.
 
 import streamlit as st
 import re
-import json
 from typing import Dict, List, Any
 
 # Built-in technical skills database

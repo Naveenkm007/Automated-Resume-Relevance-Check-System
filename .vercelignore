@@ -1,0 +1,53 @@
+# Exclude heavy files and folders for Vercel deployment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Project specific heavy files
+resume_parser/
+scoring/
+tests/
+api/
+dashboard/
+sample_data/
+notebooks/
+docs/
+
+# Keep only essential files for Vercel
+# app.py (main application)
+# requirements.txt (minimal)
+# vercel.json (config)
+# index.py (entry point)
