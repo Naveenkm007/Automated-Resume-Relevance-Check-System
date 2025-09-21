@@ -1,32 +1,7 @@
-# Streamlit Cloud Compatible Requirements - Automated Resume Relevance Check System
-# Core Streamlit dependencies
-streamlit>=1.28.0
-pandas>=2.0.0
-numpy>=1.24.0
-
-# Plotting and visualization
-plotly>=5.15.0
-
-# Resume parsing essentials
-python-docx>=0.8.11
-pdfplumber>=0.9.0
-PyMuPDF>=1.23.0
-docx2txt>=0.8
-
-# NLP and AI processing
-spacy>=3.4.0,<3.8.0
-https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.6.0/en_core_web_sm-3.6.0-py3-none-any.whl
-
-# Text processing and fuzzy matching
-fuzzywuzzy>=0.18.0
-python-Levenshtein>=0.12.0
-
-# Scientific computing
-scikit-learn>=1.3.0
-scipy>=1.10.0
-
-# Utilities
-requests>=2.31.0
-
-# For advanced AI features (optional, comment out if causing issues)
-sentence-transformers>=2.2.0
+# Minimal Streamlit Cloud Requirements - Resume Relevance Check System
+streamlit
+pandas
+numpy
+plotly
+python-docx
+requests

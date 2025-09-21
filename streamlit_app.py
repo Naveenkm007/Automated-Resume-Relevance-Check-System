@@ -34,9 +34,14 @@ try:
     from resume_parser.cleaner import normalize_text  
     from resume_parser.ner import extract_entities
     PARSER_AVAILABLE = True
-except ImportError as e:
-    st.error(f"Parser not available: {e}")
-    PARSER_AVAILABLE = False
+except ImportError:
+    try:
+        from cloud_parser import extract_text_simple as extract_text_from_file
+        from cloud_parser import normalize_text_simple as normalize_text
+        from cloud_parser import extract_entities_simple as extract_entities
+        PARSER_AVAILABLE = True
+    except ImportError:
+        PARSER_AVAILABLE = False
 
 try:
     import plotly.express as px

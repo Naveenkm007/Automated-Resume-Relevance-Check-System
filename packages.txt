@@ -1,8 +1,2 @@
-# System packages for Automated Resume Relevance Check System
-# Required for text processing and NLP
-build-essential
+# Minimal system packages for Streamlit Cloud
 python3-dev
-# For PDF processing
-poppler-utils
-# For efficient text processing
-libffi-dev
