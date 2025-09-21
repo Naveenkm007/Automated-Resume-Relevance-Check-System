@@ -1,2 +1,2 @@
-# Vercel Deployment - Absolute Minimum
-streamlit
+# Ultra-minimal Flask for Vercel
+Flask==2.3.3

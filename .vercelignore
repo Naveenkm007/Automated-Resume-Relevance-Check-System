@@ -36,18 +36,23 @@ env/
 .DS_Store
 Thumbs.db
 
-# Project specific heavy files
+# Project specific heavy files - EXCLUDE ALL EXCEPT API
 resume_parser/
 scoring/
 tests/
-api/
 dashboard/
 sample_data/
 notebooks/
 docs/
+*.md
+app.py
+streamlit_app.py
+cloud_parser.py
+simple_*.py
+demo.py
+validate_*.py
 
 # Keep only essential files for Vercel
-# app.py (main application)
-# requirements.txt (minimal)
+# api/index.py (main Flask app)
+# requirements.txt (Flask only)
 # vercel.json (config)
-# index.py (entry point)
