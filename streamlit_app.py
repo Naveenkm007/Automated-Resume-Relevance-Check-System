@@ -243,9 +243,31 @@ def main():
             )
         
         # Analysis settings
-        with st.expander("⚙️ Settings"):
+        with st.expander("⚙️ Analysis Settings"):
             show_detailed_analysis = st.checkbox("Show Detailed Analysis", value=True)
             show_missing_skills = st.checkbox("Show Missing Skills", value=True)
+        
+        # NEW: Email Automation Settings
+        with st.expander("📧 Email Automation", expanded=False):
+            email_enabled = st.checkbox("Enable Email Automation", value=False, 
+                                      help="Automatically send emails to candidates scoring 90%+")
+            
+            if email_enabled:
+                col1, col2 = st.columns(2)
+                with col1:
+                    sender_email = st.text_input("Sender Email", placeholder="hr@innomatics.com")
+                    hr_email = st.text_input("HR Email", placeholder="hr-team@innomatics.com")
+                with col2:
+                    score_threshold = st.slider("Score Threshold (%)", 80, 100, 90)
+                    st.info(f"📬 Emails sent when score ≥ {score_threshold}%")
+                
+                if sender_email and hr_email:
+                    sender_password = st.text_input("Email Password", type="password", 
+                                                  help="Use App Password for Gmail")
+                    if sender_password:
+                        st.success("✅ Email automation configured!")
+                else:
+                    st.warning("⚠️ Please configure sender and HR emails")
     
     # Main content
     col1, col2 = st.columns([2, 1])
@@ -310,11 +332,49 @@ def main():
                 # Analyze resume
                 analysis_result = analyze_resume_simple(text, job_requirements)
                 
+                progress_bar.progress(90)
+                
+                # NEW: Email automation processing
+                email_sent = False
+                if email_enabled and sender_email and hr_email and sender_password:
+                    if analysis_result['scores']['Overall Score'] >= score_threshold:
+                        status_text.text("📧 Sending automated emails...")
+                        
+                        try:
+                            # Import email modules
+                            from email_automation import EmailAutomation, EmailConfig, CandidateData
+                            
+                            # Create email config
+                            email_config = EmailConfig(
+                                sender_email=sender_email,
+                                sender_password=sender_password,
+                                hr_email=hr_email,
+                                sender_name="Innomatics Research Labs"
+                            )
+                            
+                            # Create candidate data
+                            candidate = CandidateData(
+                                name=analysis_result['info'].get('name', 'Unknown Candidate'),
+                                email=analysis_result['info'].get('email', ''),
+                                phone=analysis_result['info'].get('phone', ''),
+                                overall_score=analysis_result['scores']['Overall Score'],
+                                job_title=job_title,
+                                matched_skills=analysis_result['details']['matched_skills'],
+                                missing_skills=analysis_result['details']['missing_required'],
+                                resume_text=text[:500] + "..." if len(text) > 500 else text
+                            )
+                            
+                            # Send emails
+                            email_system = EmailAutomation(email_config)
+                            email_results = email_system.process_candidate_score(candidate, score_threshold)
+                            email_sent = email_results['candidate_email_sent'] or email_results['hr_notification_sent']
+                            
+                        except Exception as e:
+                            st.error(f"❌ Email automation failed: {str(e)}")
+                
                 progress_bar.progress(100)
                 status_text.text("✅ Analysis complete!")
-                time.sleep(1)
-                
-                # Clear progress indicators
+                time.sleep(0.5)
                 progress_bar.empty()
                 status_text.empty()
                 
@@ -380,18 +440,30 @@ def main():
                     score_df = pd.DataFrame(list(scores.items()), columns=['Metric', 'Score'])
                     score_df['Score'] = score_df['Score'].round(1)
                     st.dataframe(score_df, use_container_width=True)
-                
-                # Skills analysis
-                if show_missing_skills and details['missing_required']:
-                    st.markdown("### ⚠️ Missing Critical Skills")
-                    for skill in details['missing_required']:
-                        st.warning(f"❌ {skill.title()}")
-                
-                # Matched skills
-                if details['matched_skills']:
-                    st.markdown("### ✅ Matched Skills")
-                    skills_text = " • ".join([skill.title() for skill in details['matched_skills']])
-                    st.success(f"🎯 {skills_text}")
+                    
+                    # NEW: Email automation status
+                    if email_enabled:
+                        st.markdown("### 📧 Email Automation Status")
+                        if scores['Overall Score'] >= score_threshold:
+                            if email_sent:
+                                st.success(f"✅ Automated emails sent! Score: {scores['Overall Score']:.1f}% ≥ {score_threshold}%")
+                                st.info("📬 Candidate and HR team have been notified")
+                            else:
+                                st.warning("⚠️ Score exceeds threshold but emails not sent (check configuration)")
+                        else:
+                            st.info(f"📊 Score {scores['Overall Score']:.1f}% below threshold ({score_threshold}%) - No emails sent")
+                    
+                    # Skills analysis
+                    if show_missing_skills and details['missing_required']:
+                        st.markdown("### ⚠️ Missing Critical Skills")
+                        for skill in details['missing_required']:
+                            st.warning(f"❌ {skill.title()}")
+                    
+                    # Matched skills
+                    if details['matched_skills']:
+                        st.markdown("### ✅ Matched Skills")
+                        skills_text = " • ".join([skill.title() for skill in details['matched_skills']])
+                        st.success(f"🎯 {skills_text}")
                 
                 # Contact info
                 if info.get('email') or info.get('phone'):

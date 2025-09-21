@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-AI Insights Dashboard - Flask Version for Vercel
-===============================================
-Beautiful AI-powered resume analytics dashboard optimized for Vercel deployment.
+🚀 ULTIMATE PROFESSIONAL AI DASHBOARD - Vercel Edition
+=====================================================
+Enterprise-grade AI-powered resume analytics with stunning visuals.
 Built for Innomatics Research Labs.
 """
 
